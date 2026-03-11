@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Checkers 2077</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1535 100%);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Glowing particles */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            margin: 20px 0;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient 3s ease infinite;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #status {
+            font-family: 'Orbitron', sans-serif;
+            margin: 15px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 10px 30px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                        inset 0 0 20px rgba(0, 255, 255, 0.1);
+            animation: glow 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.2); }
+        }
+
+        #info {
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #ff00ff;
+            min-height: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: blink 1.5s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 65px);
+            grid-template-rows: repeat(8, 65px);
+            border: 3px solid #00ffff;
+            border-radius: 10px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.4),
+                        inset 0 0 40px rgba(0, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        #board::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(0, 255, 255, 0.1) 50%,
+                transparent 70%
+            );
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .cell {
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .cell.white { 
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cell.black { 
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .cell.selected { 
+            background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%) !important;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8),
+                        inset 0 0 20px rgba(255, 255, 255, 0.3);
+            animation: selectPulse 0.5s ease;
+        }
+
+        @keyframes selectPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .cell.hint { 
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%) !important;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+        }
+
+        .cell.hint::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: hintPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes hintPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .cell.capture { 
+            background: linear-gradient(135deg, #ff0066 0%, #ff0033 100%) !important;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 0, 102, 0.8);
+            animation: captureGlow 1s ease-in-out infinite;
+        }
+
+        @keyframes captureGlow {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 0, 102, 0.8); }
+            50% { box-shadow: 0 0 50px rgba(255, 0, 102, 1); }
+        }
+
+        .piece {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: relative;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .piece.white-piece {
+            background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 50%, #c0c0c0 100%);
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4),
+                        inset 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .piece.black-piece {
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 50%, #0d0d0d 100%);
+            border: 3px solid #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4),
+                        inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .piece.king::after {
+            content: '👑';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+            animation: kingGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes kingGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8)); }
+            50% { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 1)); }
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
+            color: #000;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 40px rgba(0, 255, 255, 0.8);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            #board {
+                grid-template-columns: repeat(8, 45px);
+                grid-template-rows: repeat(8, 45px);
+            }
+            .cell { width: 45px; height: 45px; }
+            .piece { width: 35px; height: 35px; }
+            .piece.king::after { font-size: 20px; }
+            #status { font-size: 1.1rem; }
+        }
+
+        /* Corner decorations */
+        .corner {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            z-index: 0;
+        }
+
+        .corner.top-left {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner.top-right {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner.bottom-left {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner.bottom-right {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+
+    <h1>⚡ Cyber Checkers ⚡</h1>
+    <div id="status">Ваш ход (Белые)</div>
+    <div id="info"></div>
+    <div id="board"></div>
+    <button onclick="resetGame()"> Новая игра</button>
+
+    <script>
+        const SIZE = 8;
+        const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+        const infoEl = document.getElementById('info');
+        
+        let board = [];
+        let turn = 'white';
+        let selected = null;
+        let validMoves = [];
+        let gameOver = false;
+        let botTimer = null;
+        let mustContinueFrom = null;
+
+        function initGame() {
+            board = [];
+            for (let r = 0; r < SIZE; r++) {
+                board[r] = [];
+                for (let c = 0; c < SIZE; c++) {
+                    if ((r + c) % 2 === 1) {
+                        if (r < 3) board[r][c] = { color: 'black', isKing: false };
+                        else if (r > 4) board[r][c] = { color: 'white', isKing: false };
+                        else board[r][c] = null;
+                    } else {
+                        board[r][c] = null;
+                    }
+                }
+            }
+            turn = 'white';
+            selected = null;
+            validMoves = [];
+            gameOver = false;
+            mustContinueFrom = null;
+            if (botTimer) clearTimeout(botTimer);
+            drawBoard();
+            updateStatus();
+        }
+
+        function drawBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'white' : 'black');
+                    cell.dataset.r = r;
+                    cell.dataset.c = c;
+
+                    if (selected && selected.r === r && selected.c === c) {
+                        cell.classList.add('selected');
+                    }
+
+                    for (let i = 0; i < validMoves.length; i++) {
+                        if (validMoves[i].toR === r && validMoves[i].toC === c) {
+                            cell.classList.add(validMoves[i].kill ? 'capture' : 'hint');
+                            break;
+                        }
+                    }
+
+                    const piece = board[r][c];
+                    if (piece) {
+                        const pDiv = document.createElement('div');
+                        pDiv.className = 'piece ' + (piece.color === 'white' ? 'white-piece' : 'black-piece');
+                        if (piece.isKing) pDiv.classList.add('king');
+                        cell.appendChild(pDiv);
+                    }
+
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        boardEl.addEventListener('click', function(e) {
+            if (gameOver || turn !== 'white') return;
+            
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+
+            const r = parseInt(cell.dataset.r);
+            const c = parseInt(cell.dataset.c);
+
+            for (let i = 0; i < validMoves.length; i++) {
+                if (validMoves[i].toR === r && validMoves[i].toC === c) {
+                    executeMove(validMoves[i]);
+                    return;
+                }
+            }
+
+            if (mustContinueFrom) {
+                infoEl.innerText = "⚠️ Продолжайте серию взятий!";
+                return;
+            }
+
+            if (board[r][c] && board[r][c].color === 'white') {
+                selected = { r: r, c: c };
+                validMoves = getValidMoves(r, c);
+                infoEl.innerText = "";
+                drawBoard();
+            }
+        });
+
+        function getValidMoves(r, c) {
+            const piece = board[r][c];
+            if (!piece) return [];
+            
+            const moves = [];
+            
+            if (piece.isKing) {
+                const dirs = [[-1,-1], [-1,1], [1,-1], [1,1]];
+                
+                for (let i = 0; i < dirs.length; i++) {
+                    let nr = r + dirs[i][0];
+                    let nc = c + dirs[i][1];
+                    let foundEnemy = null;
+                    
+                    while (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+                        if (board[nr][nc] === null) {
+                            if (foundEnemy === null) {
+                                moves.push({ fromR: r, fromC: c, toR: nr, toC: nc, kill: null });
+                            } else {
+                                moves.push({ 
+                                    fromR: r, fromC: c, 
+                                    toR: nr, toC: nc, 
+                                    kill: { r: foundEnemy.r, c: foundEnemy.c } 
+                                });
+                            }
+                        } else if (board[nr][nc].color === piece.color) {
+                            break;
+                        } else {
+                            if (foundEnemy !== null) break;
+                            foundEnemy = { r: nr, c: nc };
+                        }
+                        nr += dirs[i][0];
+                        nc += dirs[i][1];
+                    }
+                }
+            } else {
+                const dirs = piece.color === 'white' ? [[-1,-1], [-1,1]] : [[1,-1], [1,1]];
+                
+                for (let i = 0; i < dirs.length; i++) {
+                    const nr = r + dirs[i][0];
+                    const nc = c + dirs[i][1];
+                    if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === null) {
+                        moves.push({ fromR: r, fromC: c, toR: nr, toC: nc, kill: null });
+                    }
+                }
+            }
+            
+            const caps = [[-1,-1], [-1,1], [1,-1], [1,1]];
+            for (let i = 0; i < caps.length; i++) {
+                const mr = r + caps[i][0];
+                const mc = c + caps[i][1];
+                const jr = r + caps[i][0] * 2;
+                const jc = c + caps[i][1] * 2;
+                
+                if (jr >= 0 && jr < SIZE && jc >= 0 && jc < SIZE) {
+                    if (board[jr][jc] === null && board[mr][mc] && board[mr][mc].color !== piece.color) {
+                        moves.push({ fromR: r, fromC: c, toR: jr, toC: jc, kill: { r: mr, c: mc } });
+                    }
+                }
+            }
+            
+            return moves;
+        }
+
+        function executeMove(move) {
+            const piece = board[move.fromR][move.fromC];
+            
+            board[move.toR][move.toC] = piece;
+            board[move.fromR][move.fromC] = null;
+            
+            if (move.kill) {
+                board[move.kill.r][move.kill.c] = null;
+            }
+            
+            let becameKing = false;
+            if (!piece.isKing) {
+                if (piece.color === 'white' && move.toR === 0) {
+                    piece.isKing = true;
+                    becameKing = true;
+                }
+                if (piece.color === 'black' && move.toR === 7) {
+                    piece.isKing = true;
+                    becameKing = true;
+                }
+            }
+            
+            if (move.kill && !becameKing && !piece.isKing) {
+                const nextCaptureMoves = getValidMoves(move.toR, move.toC).filter(m => m.kill);
+                
+                if (nextCaptureMoves.length > 0) {
+                    mustContinueFrom = { r: move.toR, c: move.toC };
+                    selected = mustContinueFrom;
+                    validMoves = nextCaptureMoves;
+                    infoEl.innerText = "🔥 Продолжайте взятие!";
+                    drawBoard();
+                    
+                    if (turn === 'black') {
+                        setTimeout(() => botContinueSeries(nextCaptureMoves), 500);
+                    }
+                    return;
+                }
+            }
+            
+            mustContinueFrom = null;
+            selected = null;
+            validMoves = [];
+            infoEl.innerText = "";
+            drawBoard();
+            
+            if (checkWin()) return;
+            
+            turn = (turn === 'white') ? 'black' : 'white';
+            updateStatus();
+            
+            if (turn === 'black' && !gameOver) {
+                botTimer = setTimeout(botMove, 500);
+            }
+        }
+
+        function botContinueSeries(moves) {
+            if (gameOver) return;
+            const move = moves[Math.floor(Math.random() * moves.length)];
+            executeMove(move);
+        }
+
+        function botMove() {
+            if (gameOver) return;
+            
+            let allMoves = [];
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c] && board[r][c].color === 'black') {
+                        const moves = getValidMoves(r, c);
+                        for (let i = 0; i < moves.length; i++) {
+                            allMoves.push(moves[i]);
+                        }
+                    }
+                }
+            }
+            
+            if (allMoves.length === 0) {
+                statusEl.innerText = "🎉 Вы победили!";
+                gameOver = true;
+                return;
+            }
+            
+            const caps = [];
+            const normal = [];
+            for (let i = 0; i < allMoves.length; i++) {
+                if (allMoves[i].kill) caps.push(allMoves[i]);
+                else normal.push(allMoves[i]);
+            }
+            
+            const move = (caps.length > 0) 
+                ? caps[Math.floor(Math.random() * caps.length)]
+                : normal[Math.floor(Math.random() * normal.length)];
+            
+            executeMove(move);
+        }
+
+        function updateStatus() {
+            if (gameOver) return;
+            statusEl.innerText = (turn === 'white') ? "Ваш ход (Белые)" : "Бот думает...";
+        }
+
+        function checkWin() {
+            let white = 0, black = 0;
+            let whiteMoves = 0, blackMoves = 0;
+            
+            for (let r = 0; r < SIZE; r++) {
+                for (let c = 0; c < SIZE; c++) {
+                    if (board[r][c]) {
+                        if (board[r][c].color === 'white') {
+                            white++;
+                            whiteMoves += getValidMoves(r, c).length;
+                        } else {
+                            black++;
+                            blackMoves += getValidMoves(r, c).length;
+                        }
+                    }
+                }
+            }
+            
+            if (white === 0 || whiteMoves === 0) {
+                if (turn === 'white') {
+                    statusEl.innerText = "😔 Вы проиграли!";
+                    gameOver = true;
+                    return true;
+                }
+            }
+            
+            if (black === 0 || blackMoves === 0) {
+                if (turn === 'black') {
+                    statusEl.innerText = "🎉 Вы победили!";
+                    gameOver = true;
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
